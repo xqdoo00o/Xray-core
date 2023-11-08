@@ -2,6 +2,8 @@ package internet
 
 import (
 	"net"
+	"os"
+	"strconv"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -173,6 +175,20 @@ func applyInboundSocketOptions(network string, fd uintptr, config *SocketConfig)
 		if config.TcpMaxSeg > 0 {
 			if err := syscall.SetsockoptInt(int(fd), syscall.IPPROTO_TCP, unix.TCP_MAXSEG, int(config.TcpMaxSeg)); err != nil {
 				return newError("failed to set TCP_MAXSEG", err)
+			}
+		}
+
+		if config.BrutalRate > 0 {
+			err := os.WriteFile("/sys/module/brutal/parameters/init_pacing_rate", []byte(strconv.FormatUint(config.BrutalRate, 10)), 0666)
+			if err != nil {
+				return newError("failed to set BrutalRate", err)
+			}
+		}
+
+		if config.BrutalGain > 0 {
+			err := os.WriteFile("/sys/module/brutal/parameters/init_cwnd_gain", []byte(strconv.FormatUint(uint64(config.BrutalGain), 10)), 0666)
+			if err != nil {
+				return newError("failed to set BrutalGain", err)
 			}
 		}
 	}
